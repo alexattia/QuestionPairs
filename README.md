@@ -18,3 +18,4 @@ We have tried different models to classify our sentences (same meaning or differ
 - 1D CNN 
 - Hand crafted features + Random Forest
 - Hand crafted features + XGBoost
+- Hand crafted features + XGBoost and LSTM
