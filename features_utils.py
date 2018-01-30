@@ -310,6 +310,16 @@ def get_pagerank_value(row, pagerank_dict):
 ##########################
 
 def build_features(data, stops, weights):
+    """
+    Add first features to the dataframe :
+    - Word counts and ratio
+    - Characters sensitive counts
+    - Jaccard
+    :param data: dataframe
+    :param stops: stop words
+    :param weights: weights
+    :return: updated dataframe
+    """
     X = pd.DataFrame()
 
     f = functools.partial(tfidf_word_match_share, weights=weights)
@@ -346,6 +356,16 @@ def build_features(data, stops, weights):
     return X
 
 def get_features(df_features, tfidf):
+    """
+    Add new features to the dataframe :
+    - Number of nouns 
+    - Tf-Idf features
+    - Capital letters count
+    - Interrogative words
+    :param df_features: dataframe
+    :param tfidf: scikit learn trained tfidf object
+    :return: updated dataframe
+    """
     df_features['question1_nouns'] = df_features.question1.map(lambda x: [w for w, t in nltk.pos_tag(nltk.word_tokenize(str(x).lower())) if t[:1] in ['N']])
     df_features['question2_nouns'] = df_features.question2.map(lambda x: [w for w, t in nltk.pos_tag(nltk.word_tokenize(str(x).lower())) if t[:1] in ['N']])
 
