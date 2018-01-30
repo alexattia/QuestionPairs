@@ -219,6 +219,7 @@ def add_word_count(x, df, word):
     x['q1_' + word] = df['question1'].apply(lambda x: (word in str(x).lower())*1)
     x['q2_' + word] = df['question2'].apply(lambda x: (word in str(x).lower())*1)
     x[word + '_both'] = x['q1_' + word] * x['q2_' + word]
+    return x
 
 def get_noun(df_features):
     """
@@ -309,7 +310,7 @@ def get_pagerank_value(row, pagerank_dict):
 ### Aggregating Features
 ##########################
 
-def build_features(data, stops, weights):
+def words_features(data, stops, weights):
     """
     Add first features to the dataframe :
     - Word counts and ratio
@@ -355,7 +356,7 @@ def build_features(data, stops, weights):
 
     return X
 
-def get_features(df_features, tfidf):
+def sentence_features(df_features, tfidf):
     """
     Add new features to the dataframe :
     - Number of nouns 
@@ -375,19 +376,28 @@ def get_features(df_features, tfidf):
     df_features['z_tfidf_mean2'] = df_features.question2.map(lambda x: np.mean(tfidf.transform([str(x)]).data))
     df_features['z_tfidf_len1'] = df_features.question1.map(lambda x: len(tfidf.transform([str(x)]).data))
     df_features['z_tfidf_len2'] = df_features.question2.map(lambda x: len(tfidf.transform([str(x)]).data))
-    
+   
+    return df_features.fillna(0.0)
+
+def semantic_features(df_features):
+    """
+    Add new features to the dataframe :
+    - Capital letters count
+    - Interrogative words
+    :param df_features: dataframe
+    :return: updated dataframe
+    """
     df_features['caps_count_q1'] = df_features['question1'].apply(lambda x:sum(1 for i in str(x) if i.isupper()))
     df_features['caps_count_q2'] = df_features['question2'].apply(lambda x:sum(1 for i in str(x) if i.isupper()))
     df_features['diff_caps'] = df_features['caps_count_q1'] - df_features['caps_count_q2']
     
     df_features['exactly_same'] = (df_features['question1'] == df_features['question2']).astype(int)
     df_features['duplicated'] = df_features.duplicated(['question1','question2']).astype(int)
-    
-    add_word_count(df_features, df_features,'how')
-    add_word_count(df_features, df_features,'what')
-    add_word_count(df_features, df_features,'which')
-    add_word_count(df_features, df_features,'who')
-    add_word_count(df_features, df_features,'where')
-    add_word_count(df_features, df_features,'when')
-    add_word_count(df_features, df_features,'why')
+    df_features = add_word_count(df_features, df_features,'how')
+    df_features = add_word_count(df_features, df_features,'what')
+    df_features = add_word_count(df_features, df_features,'which')
+    df_features = add_word_count(df_features, df_features,'who')
+    df_features = add_word_count(df_features, df_features,'where')
+    df_features = add_word_count(df_features, df_features,'when')
+    df_features = add_word_count(df_features, df_features,'why')
     return df_features.fillna(0.0)

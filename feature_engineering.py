@@ -35,12 +35,15 @@ def create_preprocessed_features():
     df_test['q1_freq'] = df_test.apply(lambda x: q1_freq(x, q_dict), axis=1, raw=True)
     df_test['q2_freq'] = df_test.apply(lambda x: q2_freq(x, q_dict), axis=1, raw=True)
 
-    test_leaky = df_test.loc[:, ['q1_q2_intersect','q1_freq','q2_freq']]
-    train_leaky = df_train.loc[:, ['q1_q2_intersect','q1_freq','q2_freq']]
+   # test_leaky = df_test.loc[:, ['q1_q2_intersect','q1_freq','q2_freq']]
+   # train_leaky = df_train.loc[:, ['q1_q2_intersect','q1_freq','q2_freq']]
 
     # Add other custom features to train
     stops = set(stopwords.words("english"))
-
+    
+    # Add semantic features
+    df_train = semantic_features(df_train)
+    
     ## TODO REPLACE SPLIT BY PREPROCESSED TEXT
     df_train['question1'] = df_train['question1'].map(lambda x: str(x).lower().split())
     df_train['question2'] = df_train['question2'].map(lambda x: str(x).lower().split())
@@ -51,18 +54,16 @@ def create_preprocessed_features():
     counts = Counter(words)
     weights = {word: get_weight(count) for word, count in counts.items()}
 
-    X_train = build_features(df_train, stops, weights)
-    X_train = pd.concat((X_train, train_leaky), axis=1)
-
+    words_features_train = words_features(df_train, stops, weights)
+    X_train = pd.concat((df_train, words_features_train), axis=1)
+    
     # Add other custom features to test
-    df_test = pd.read_csv('test.csv', header=None)
-    df_test.columns = ['id', 'id1', 'id2', 'question1', 'question2']
-    df_test = df_test.fillna(' ')
-
+    df_test = semantic_features(df_test)
+    
     df_test['question1'] = df_test['question1'].map(lambda x: str(x).lower().split())
     df_test['question2'] = df_test['question2'].map(lambda x: str(x).lower().split())
-    X_test = build_features(df_test, stops, weights)
-    X_test = pd.concat((X_test, test_leaky), axis=1)
+    words_features_test = words_features(df_test, stops, weights)
+    X_test = pd.concat((df_test, words_features_test), axis=1)
     return X_train, X_test
 
 def create_tfidf_features():
@@ -75,14 +76,12 @@ def create_tfidf_features():
     train, test = load_dataset()
 
     tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 1))
-    cvect = CountVectorizer(stop_words='english', ngram_range=(1, 1))
 
     tfidf_txt = pd.Series(train['question1'].tolist() + train['question2'].tolist() + test['question1'].tolist() + test['question2'].tolist()).astype(str)
     _ = tfidf.fit_transform(tfidf_txt)
-    _ = cvect.fit_transform(tfidf_txt)
 
-    trn_features = get_features(train, tfidf)
-    tst_features = get_features(test, tfidf)
+    trn_features = sentence_features(train, tfidf)
+    tst_features = sentence_features(test, tfidf)
 
     trn_features = get_noun(trn_features)
     tst_features = get_noun(tst_features)
