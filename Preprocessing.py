@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 MAX_NB_WORDS = 200000
 MAX_SEQUENCE_LENGTH = 40
 VALIDATION_SPLIT = 0.1
-GLOVE_DIR = ''
+GLOVE_DIR = './'
 EMBEDDING_DIM = 300
 
 # The function "text_to_wordlist" is from
@@ -130,11 +130,11 @@ def preprocessing():
     return data_1, data_2, test_data_1, test_data_2, test_ids, labels, word_index
 
 def load_leaky():
-    # new feaatures
+    # new features
     print("-- Preprocessing - load leaky features")
     trn = pd.read_csv('X_train.csv')
     trn = trn.drop(["question1", "question2",
-                            "question1_nouns", "question2_nouns"],
+                    "question1_nouns", "question2_nouns"],
                           axis=1)
     tst = pd.read_csv('X_test.csv')
     tst = tst.drop(["question1", "question2",

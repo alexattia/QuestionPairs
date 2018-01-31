@@ -8,6 +8,7 @@ import argparse
 import functools
 # Our features
 from features_utils import *
+from Preprocessing import text_to_wordlist
 
 def create_preprocessed_features():
     """
@@ -45,8 +46,8 @@ def create_preprocessed_features():
     df_train = semantic_features(df_train)
     
     ## TODO REPLACE SPLIT BY PREPROCESSED TEXT
-    df_train['question1'] = df_train['question1'].map(lambda x: str(x).lower().split())
-    df_train['question2'] = df_train['question2'].map(lambda x: str(x).lower().split())
+    df_train['question1'] = df_train['question1'].map(lambda x: text_to_wordlist(str(x).lower()))
+    df_train['question2'] = df_train['question2'].map(lambda x: text_to_wordlist(str(x).lower()))
 
     train_qs = pd.Series(df_train['question1'].tolist() + df_train['question2'].tolist())
 
