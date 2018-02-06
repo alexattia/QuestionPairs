@@ -20,50 +20,6 @@ VALIDATION_SPLIT = 0.1
 GLOVE_DIR = './'
 EMBEDDING_DIM = 300
 
-# The function "text_to_wordlist" is from
-# https://www.kaggle.com/currie32/quora-question-pairs/the-importance-of-cleaning-text
-
-def text_to_wordlist(text, remove_stopwords=True, stem_words=False):
-    # Clean the text, with the option to remove stopwords and to stem words.
-    # Convert words to lower case and split them
-    text = text.lower().split()
-    # Optionally, remove stop words
-    if remove_stopwords:
-        stops = set(stopwords.words("english"))
-        text = [w for w in text if not w in stops]
-    text = " ".join(text)
-    # Clean the text
-    text = re.sub(r"[^A-Za-z0-9]", " ", text)
-    text = re.sub(r"what's", "", text)
-    text = re.sub(r"What's", "", text)
-    text = re.sub(r"\'s", " ", text)
-    text = re.sub(r"\'ve", " have ", text)
-    text = re.sub(r"can't", "cannot ", text)
-    text = re.sub(r"n't", " not ", text)
-    text = re.sub(r"I'm", "i am", text)
-    text = re.sub(r" m ", " am ", text)
-    text = re.sub(r"\'re", " are ", text)
-    text = re.sub(r"\'d", " would ", text)
-    text = re.sub(r"\'ll", " will ", text)
-    text = re.sub(r" e g ", " eg ", text)
-    text = re.sub(r" b g ", " bg ", text)
-    text = re.sub(r"e-mail", "email", text)
-    text = re.sub(r" usa ", " america ", text)
-    text = re.sub(r" USA ", " america ", text)
-    text = re.sub(r" u s ", " america ", text)
-    text = re.sub(r" uk ", " england ", text)
-    text = re.sub(r" UK ", " england ", text)
-    text = re.sub(r"india", "india", text)
-    text = re.sub(r"kms", " kilometers ", text)
-    # Optionally, shorten words to their stems
-    if stem_words:
-        text = text.split()
-        stemmer = SnowballStemmer('english')
-        stemmed_words = [stemmer.stem(word) for word in text]
-        text = " ".join(stemmed_words)
-
-    # Return a list of words
-    return(text)
 
 def tokenization(texts_1, texts_2, test_texts_1, test_texts_2):
     # tokenize
@@ -97,7 +53,7 @@ def preprocessing():
     print("-- Preprocessing - tokenization")
     sequences_1, sequences_2, test_sequences_1, test_sequences_2, word_index = tokenization(texts_1, texts_2, test_texts_1, test_texts_2)
     print("-- Preprocessing - Sentence Truncate")
-    data_1 = pad_sequences(sequences_1, maxlen=MAX_SEQUENCE_LENGTH)
+    data_1 = pad_sequences(sequences_1, maxlen=MAX_SEQUENCE_LENGTH) #padding : add values at the end to compare phrases from different lengths
     data_2 = pad_sequences(sequences_2, maxlen=MAX_SEQUENCE_LENGTH)
     test_data_1 = pad_sequences(test_sequences_1, maxlen=MAX_SEQUENCE_LENGTH)
     test_data_2 = pad_sequences(test_sequences_2, maxlen=MAX_SEQUENCE_LENGTH)
@@ -107,17 +63,17 @@ def preprocessing():
 def load_leaky():
     # new features
     print("-- Preprocessing - load leaky features")
-    trn = pd.read_csv('X_train.csv')
-    trn = trn.drop(["question1", "question2",
-                    "question1_nouns", "question2_nouns"],
-                          axis=1)
-    tst = pd.read_csv('X_test.csv')
-    tst = tst.drop(["question1", "question2",
-                            "question1_nouns", "question2_nouns"],
-                          axis=1)
+    trn = pd.read_csv('X_train.csv', index_col=0)
+    trn = trn.drop(["is_duplicate","question1", "question2"], axis=1) #,"question1_nouns", "question2_nouns"
+    tst = pd.read_csv('X_test.csv', index_col=0)
+    tst = tst.drop(["question1", "question2"], axis=1) #,"question1_nouns", "question2_nouns"
+    trn = trn.replace([np.inf, -np.inf], np.nan)
+    tst = tst.replace([np.inf, -np.inf], np.nan)
     trn = trn.fillna(value=0)
     tst = tst.fillna(value=0)
     trn.shape, tst.shape
+    print(trn.isnull().values.any())
+    print(tst.isnull().values.any())
     print("-- Preprocessing - rescale leaky features")
     leaks = trn[trn.columns.values]
     test_leaks = tst[tst.columns.values]

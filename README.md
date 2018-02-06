@@ -6,12 +6,15 @@ same meaning.  We tackle this challenge by considering multiple text features ei
 embedding techniques such as Word2Vec, graph information from the underlying graph, some feature
 engineering techniques and finally, well-chosen classifier.
 
-The global pipeline can be found [in this notebook](https://github.com/alexattia/QuestionPairs/blob/master/Predicting_questions_meaning.ipynb)
+First, [create_features.py](https://github.com/alexattia/QuestionPairs/blob/master/create_features.py) 
+Second, [xgboost.py](https://github.com/alexattia/QuestionPairs/blob/master/xgboost.py) 
+Third, [lstm.py](https://github.com/alexattia/QuestionPairs/blob/master/lstm.py) 
+Finally, [averaging.py](https://github.com/alexattia/QuestionPairs/blob/master/averaging.py) 
 
 ### Feature engineering
 We introduce the different features that can arise from the analysis of the underlying data.  
 We compute text mining features, embedding features, TF-IDF features and Page Rank features.  
-The code to compute this pre-processing can be found in the [feature_engineering.py](https://github.com/alexattia/QuestionPairs/blob/master/feature_engineering.py) 
+The code to compute this pre-processing can be found in the [create_features.py](https://github.com/alexattia/QuestionPairs/blob/master/create_features.py) 
 
 ### Model and Comparison
 We have tried different models to classify our sentences (same meaning or different meaning) :

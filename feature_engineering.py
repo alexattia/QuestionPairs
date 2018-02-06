@@ -6,65 +6,86 @@ from sklearn.metrics import log_loss
 from sklearn.cross_validation import train_test_split
 import argparse
 import functools
-# Our features
-from features_utils import *
-from Preprocessing import text_to_wordlist
+import gc
+import hashlib
 
-def create_preprocessed_features():
+from dataset_utils import load_dataset, clean_text
+from features_utils import * # our features
+from tfidf import tfidf_features
+from pagerank import get_pagerank, get_pagerank_value
+from graph_features import get_graph_features
+from distance_features import extend_with_features
+from multiprocessing import Pool
+
+
+def create_text_and_graph_features():
     """
     Using the function in feature_utils.py, we create a dataframe with
     text mining features (interrogative, caps, grammatical, leaky features)
     :return: pandas dataframe for train and test set
     """
-    # Load dataset
+    ####################################################
+    ### Load dataset
+    ####################################################
     df_train, df_test = load_dataset()
 
-    # Create a dictionnary of paired questions for every question
-    ques = pd.concat([df_train[['question1', 'question2']], \
-        df_test[['question1', 'question2']]], axis=0).reset_index(drop='index')
-    q_dict = defaultdict(set)
-    for i in range(ques.shape[0]):
-            q_dict[ques.question1[i]].add(ques.question2[i])
-            q_dict[ques.question2[i]].add(ques.question1[i])
-            
-    # Frequency features 
-    df_train['q1_q2_intersect'] = df_train.apply(lambda x: q1_q2_intersect(x, q_dict), axis=1, raw=True)
-    df_train['q1_freq'] = df_train.apply(lambda x: q1_freq(x, q_dict), axis=1, raw=True)
-    df_train['q2_freq'] = df_train.apply(lambda x: q2_freq(x, q_dict), axis=1, raw=True)
+    ####################################################
+    ### Add graph features
+    ####################################################
+    df_train, df_test = get_graph_features(df_train, df_test)
+    df_train_copy, df_test_copy = df_train.copy(), df_test.copy()
 
-    df_test['q1_q2_intersect'] = df_test.apply(lambda x: q1_q2_intersect(x, q_dict), axis=1, raw=True)
-    df_test['q1_freq'] = df_test.apply(lambda x: q1_freq(x, q_dict), axis=1, raw=True)
-    df_test['q2_freq'] = df_test.apply(lambda x: q2_freq(x, q_dict), axis=1, raw=True)
-
-   # test_leaky = df_test.loc[:, ['q1_q2_intersect','q1_freq','q2_freq']]
-   # train_leaky = df_train.loc[:, ['q1_q2_intersect','q1_freq','q2_freq']]
-
-    # Add other custom features to train
+    # stopwords
     stops = set(stopwords.words("english"))
-    
-    # Add semantic features
-    df_train = semantic_features(df_train)
-    
-    ## TODO REPLACE SPLIT BY PREPROCESSED TEXT
-    df_train['question1'] = df_train['question1'].map(lambda x: text_to_wordlist(str(x).lower()))
-    df_train['question2'] = df_train['question2'].map(lambda x: text_to_wordlist(str(x).lower()))
 
-    train_qs = pd.Series(df_train['question1'].tolist() + df_train['question2'].tolist())
+    # Add custom features to train/test
+    df_train = count_features(df_train)
+    df_test = count_features(df_test)
+
+    # questions columns are now list of words for train / test
+    df_train['question1'] = df_train['question1'].map(lambda x: clean_text(str(x)).split())
+    df_train['question2'] = df_train['question2'].map(lambda x: clean_text(str(x)).split())
+    df_test['question1'] = df_test['question1'].map(lambda x: clean_text(str(x)).split())
+    df_test['question2'] = df_test['question2'].map(lambda x: clean_text(str(x)).split())
+
+    #List of splitted questions
+    train_qs = pd.Series(df_train['question1'].tolist() + df_train['question2'].tolist() +
+                            df_test['question1'].tolist() + df_test['question2'].tolist())
 
     words = [x for y in train_qs for x in y]
     counts = Counter(words)
     weights = {word: get_weight(count) for word, count in counts.items()}
 
-    words_features_train = words_features(df_train, stops, weights)
-    X_train = pd.concat((df_train, words_features_train), axis=1)
-    
-    # Add other custom features to test
-    df_test = semantic_features(df_test)
-    
-    df_test['question1'] = df_test['question1'].map(lambda x: str(x).lower().split())
-    df_test['question2'] = df_test['question2'].map(lambda x: str(x).lower().split())
-    words_features_test = words_features(df_test, stops, weights)
-    X_test = pd.concat((df_test, words_features_test), axis=1)
+    ####################################################
+    ### Add word features
+    ####################################################
+    word_features_train = word_features(df_train, stops, weights)
+    df_train = pd.concat((df_train, word_features_train), axis=1)
+
+    word_features_test = word_features(df_test, stops, weights)
+    df_test = pd.concat((df_test, word_features_test), axis=1)
+
+    # Find nouns
+    train_noun_features = nouns_features(df_train_copy)
+    test_noun_features = nouns_features(df_test_copy)
+    X_train = pd.concat((df_train, train_noun_features['noun_match']), axis=1)
+    X_test = pd.concat((df_test, test_noun_features['noun_match']), axis=1)
+    return X_train, X_test
+
+def create_distance_features():
+    """
+    Common distances
+    :return: pandas dataframe for train and test set
+    """
+
+    p = Pool(2)
+    df_train, df_test = load_dataset()
+    df_train, df_test = p.map(extend_with_features, [df_train, df_test])
+
+    X_train = df_train.drop(['id', 'id1', 'id2', "question1", "question2", 'is_duplicate'],
+                          axis=1)
+    X_test = df_test.drop(['id', 'id1', 'id2', "question1", "question2"],
+                          axis=1)
     return X_train, X_test
 
 def create_tfidf_features():
@@ -76,20 +97,18 @@ def create_tfidf_features():
     # Load dataset
     train, test = load_dataset()
 
-    tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 1))
+    tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
 
     tfidf_txt = pd.Series(train['question1'].tolist() + train['question2'].tolist() + test['question1'].tolist() + test['question2'].tolist()).astype(str)
     _ = tfidf.fit_transform(tfidf_txt)
 
-    trn_features = sentence_features(train, tfidf)
-    tst_features = sentence_features(test, tfidf)
-
-    trn_features = get_noun(trn_features)
-    tst_features = get_noun(tst_features)
-
+    trn_features = tfidf_features(train, tfidf)
+    tst_features = tfidf_features(test, tfidf)
     # removing unnecessary columns from train and test data
-    X_train = trn_features.iloc[:,8:]
-    X_test = tst_features.iloc[:,7:]
+    X_train = trn_features.drop(['id', 'id1', 'id2', "question1", "question2", 'is_duplicate'],
+                          axis=1)
+    X_test = tst_features.drop(['id', 'id1', 'id2', "question1", "question2"],
+                          axis=1)
     return X_train, X_test
 
 def create_pagerank_features():
@@ -116,7 +135,7 @@ def create_pagerank_features():
     qid_graph = {}
     _ = df_train.apply(generate_qid_graph_table, axis=1)
     _ = df_test.apply(generate_qid_graph_table, axis=1)
-    pagerank_dict = pagerank(qid_graph)
+    pagerank_dict = get_pagerank(qid_graph)
 
     X_train = df_train.apply(lambda x:get_pagerank_value(x, pagerank_dict), axis=1)
     # Empty garbage collector
