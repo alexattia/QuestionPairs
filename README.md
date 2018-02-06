@@ -6,10 +6,10 @@ same meaning.  We tackle this challenge by considering multiple text features ei
 embedding techniques such as Word2Vec, graph information from the underlying graph, some feature
 engineering techniques and finally, well-chosen classifier.
 
-First, [create_features.py](https://github.com/alexattia/QuestionPairs/blob/master/create_features.py) 
-Second, [xgboost.py](https://github.com/alexattia/QuestionPairs/blob/master/xgboost.py) 
-Third, [lstm.py](https://github.com/alexattia/QuestionPairs/blob/master/lstm.py) 
-Finally, [averaging.py](https://github.com/alexattia/QuestionPairs/blob/master/averaging.py) 
+First, [create_features.py](https://github.com/alexattia/QuestionPairs/blob/master/create_features.py).
+Second, [xgboost.py](https://github.com/alexattia/QuestionPairs/blob/master/xgboost.py).
+Third, [lstm.py](https://github.com/alexattia/QuestionPairs/blob/master/lstm.py).
+Finally, [averaging.py](https://github.com/alexattia/QuestionPairs/blob/master/averaging.py).
 
 ### Feature engineering
 We introduce the different features that can arise from the analysis of the underlying data.  
