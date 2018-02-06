@@ -6,6 +6,7 @@ same meaning.  We tackle this challenge by considering multiple text features ei
 embedding techniques such as Word2Vec, graph information from the underlying graph, some feature
 engineering techniques and finally, well-chosen classifier.
 
+To reproduce the pipeline, run:
 First, [create_features.py](https://github.com/alexattia/QuestionPairs/blob/master/create_features.py).
 Second, [xgboost.py](https://github.com/alexattia/QuestionPairs/blob/master/xgboost.py).
 Third, [lstm.py](https://github.com/alexattia/QuestionPairs/blob/master/lstm.py).
